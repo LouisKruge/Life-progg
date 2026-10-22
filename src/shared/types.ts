@@ -430,6 +430,49 @@ export interface TimelinePage {
   types: string[];
 }
 
+// ---------- Phase 5: AI strategist ----------
+
+export interface AiProposalView {
+  id: number;
+  kind: "create_quest" | "complete_quest" | "add_note" | "add_season_goal";
+  summary: string;
+  payload: Record<string, unknown>;
+  status: "pending" | "approved" | "rejected" | "failed";
+  resultNote: string;
+}
+
+export interface AiChatMessage {
+  id: number;
+  role: "user" | "assistant";
+  text: string;
+  /** Read tools the assistant used for this answer, so the user can see what data it looked at. */
+  toolsUsed: string[];
+  createdAt: string;
+}
+
+export interface AiConversationView {
+  id: number;
+  title: string;
+  mode: "chat" | "daily_focus" | "weekly_review";
+  messages: AiChatMessage[];
+  proposals: AiProposalView[];
+  updatedAt: string;
+}
+
+export interface PlannerOutput {
+  dailyPlan: { headline: string; steps: string[]; workloadNote: string | null };
+  weeklyReview: { completed: number; xp: number; activeDays: number; skipped: number; topCategories: string[]; savingsChangeCents: number; observations: string[] };
+  suggestions: Array<{ title: string; reason: string; difficulty: QuestDifficulty; frequency: QuestFrequency; categoryKey: string | null }>;
+  reflectionPrompts: string[];
+}
+
+export interface AiStatus {
+  enabled: boolean;
+  hasApiKey: boolean;
+  model: string;
+  scopes: AiDataScope[];
+}
+
 export interface ApiErrorBody {
   error: { code: string; message: string; details?: unknown };
 }
@@ -459,6 +502,8 @@ export function levelFromXp(totalXp: number): LevelInfo {
   }
   return { level, totalXp: xp, levelStartXp: start, xpIntoLevel: xp - start, xpForNextLevel: xpToAdvance(level) };
 }
+
+export const DEFAULT_AI_MODEL = "claude-opus-5-5";
 
 export const DEFAULT_RANKS: RankThreshold[] = [
   { title: "Initiate", minLevel: 1 },

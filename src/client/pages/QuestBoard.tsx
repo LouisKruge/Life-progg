@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog, Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
 import { QuestRow, DifficultyPips } from "@/components/quests/QuestRow";
+import { CalendarImport } from "@/components/quests/CalendarImport";
 import { DIFFICULTY_PIPS, FREQUENCY_LABEL, KIND_LABEL } from "@/components/quests/meta";
 import { PageHeader, QueryError } from "./common";
 import { cn } from "@/lib/utils";
@@ -32,7 +33,7 @@ export function QuestBoardPage() {
         eyebrow="Quest engine"
         title="Quest Board"
         description="Completions pay out once per day, week or quest. Skipping is always penalty-free."
-        actions={<Button onClick={() => openQuestEditor()}><Plus /> New quest</Button>}
+        actions={<><CalendarImport /><Button onClick={() => openQuestEditor()}><Plus /> New quest</Button></>}
       />
 
       <div className="grid grid-cols-12 gap-4">

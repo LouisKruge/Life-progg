@@ -30,6 +30,7 @@ import { syncCurrentAllowance } from "./services/rewards.js";
 import { rewardRoutes } from "./routes/rewards.js";
 import { wealthRoutes } from "./routes/wealth.js";
 import { progressRoutes } from "./routes/progress.js";
+import { aiRoutes } from "./routes/ai.js";
 
 export interface AppOptions {
   ctx: AppContext;
@@ -45,7 +46,7 @@ function parse<T>(schema: ZodType<T>, data: unknown): T {
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 export function buildApp({ ctx, clientDir = null, dataDir, logger = false }: AppOptions): FastifyInstance {
-  const app = Fastify({ logger, bodyLimit: 1_048_576 });
+  const app = Fastify({ logger, bodyLimit: 4_194_304 });
 
   // Defence for a localhost app: browsers can't send custom headers cross-origin without a
   // CORS preflight (which we never approve), so this blocks drive-by requests from other sites.
@@ -134,6 +135,7 @@ export function buildApp({ ctx, clientDir = null, dataDir, logger = false }: App
   rewardRoutes(app, ctx);
   wealthRoutes(app, ctx);
   progressRoutes(app, ctx);
+  aiRoutes(app, ctx);
 
   // ---- Backup & export ----
   app.get("/api/backups", async () => listBackups(ctx));

@@ -59,7 +59,7 @@ export function useInvalidateProgress() {
       void qc.invalidateQueries({ queryKey: k });
     }
     // Progress can unlock achievements and skills and change wealth and vault figures.
-    for (const prefix of ["quests", "vault", "wealth", "achievements", "skills", "seasons", "timeline-feed"]) {
+    for (const prefix of ["quests", "vault", "wealth", "achievements", "skills", "seasons", "timeline-feed", "ai"]) {
       void qc.invalidateQueries({ queryKey: [prefix] });
     }
   };

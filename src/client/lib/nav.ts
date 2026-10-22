@@ -17,8 +17,6 @@ export interface NavItem {
   path: string;
   label: string;
   icon: LucideIcon;
-  /** Development phase in which the full module ships; shown as a tag until then. */
-  phase?: number;
 }
 
 export const NAV: NavItem[] = [
@@ -30,7 +28,7 @@ export const NAV: NavItem[] = [
   { path: "/rewards", label: "Rewards Vault", icon: Gift },
   { path: "/achievements", label: "Achievements", icon: Trophy },
   { path: "/seasons", label: "Life Seasons", icon: CalendarRange },
-  { path: "/strategist", label: "AI Strategist", icon: BrainCircuit, phase: 5 },
+  { path: "/strategist", label: "AI Strategist", icon: BrainCircuit },
   { path: "/timeline", label: "Timeline", icon: History },
   { path: "/settings", label: "Settings", icon: Settings },
 ];

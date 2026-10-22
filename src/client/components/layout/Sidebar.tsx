@@ -44,7 +44,6 @@ export function Sidebar() {
               )}
               <Icon className="relative size-4" strokeWidth={1.75} />
               <span className="relative flex-1">{item.label}</span>
-              {item.phase && <span className="relative text-[9px] tracking-wider text-subtle-foreground uppercase">Soon</span>}
             </a>
           );
         })}

@@ -6,7 +6,7 @@ import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3"
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { eq } from "drizzle-orm";
 import * as schema from "./schema.js";
-import { DEFAULT_DIFFICULTY_REWARDS, DEFAULT_RANKS } from "../../shared/types.js";
+import { DEFAULT_AI_MODEL, DEFAULT_DIFFICULTY_REWARDS, DEFAULT_RANKS } from "../../shared/types.js";
 
 export type AppDb = BetterSQLite3Database<typeof schema>;
 
@@ -121,7 +121,7 @@ function ensureDefaults(db: AppDb): void {
   const settings = db.select().from(schema.userSettings).where(eq(schema.userSettings.userId, 1)).get();
   if (!settings) {
     db.insert(schema.userSettings)
-      .values({ userId: 1, rankThresholds: DEFAULT_RANKS, difficultyRewards: DEFAULT_DIFFICULTY_REWARDS })
+      .values({ userId: 1, rankThresholds: DEFAULT_RANKS, difficultyRewards: DEFAULT_DIFFICULTY_REWARDS, aiModel: DEFAULT_AI_MODEL })
       .run();
   }
   LIFE_CATEGORIES.forEach((c, i) => {

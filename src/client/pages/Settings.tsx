@@ -210,7 +210,7 @@ function AiSection({ s }: { s: Settings }) {
     <Card>
       <CardHeader><CardTitle className="flex items-center gap-2"><KeyRound className="size-3.5" /> AI strategist (optional)</CardTitle>{s.hasApiKey ? <Badge variant="solid">Key stored</Badge> : <Badge>No key</Badge>}</CardHeader>
       <CardContent className="space-y-4 pt-3">
-        <p className="text-xs text-muted-foreground">The key is stored in the local database on this computer and is never sent back to the browser. The AI strategist itself ships in phase 5; until then the dashboard uses the built-in planner.</p>
+        <p className="text-xs text-muted-foreground">The key is stored in the local database on this computer and is never sent back to the browser. Choose what data the strategist may read on the AI Strategist page. Without a key, the built-in planner is used.</p>
         <label className="flex items-center justify-between">
           <span className="text-sm">Enable AI features</span>
           <Switch checked={s.aiEnabled} disabled={!s.hasApiKey} onCheckedChange={(v) => update.mutate({ aiEnabled: v })} aria-label="Enable AI features" />

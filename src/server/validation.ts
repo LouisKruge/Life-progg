@@ -203,3 +203,17 @@ export const noteSchema = z.object({
   kind: z.enum(["note", "event"]).optional(),
 });
 export const snapshotSchema = z.object({ label: shortText(120).optional() }).optional().default({});
+
+// ---------- Phase 5 ----------
+
+export const aiMessageSchema = z.object({
+  conversationId: z.number().int().positive().optional(),
+  text: z.string().trim().min(1, "Write a message.").max(8000),
+  mode: z.enum(["chat", "daily_focus", "weekly_review"]).optional(),
+});
+export const proposalDecisionSchema = z.object({ approve: z.boolean() });
+
+export const icsPreviewSchema = z.object({ ics: z.string().min(1).max(2_000_000), days: z.number().int().min(1).max(365).optional() });
+export const icsImportSchema = z.object({
+  events: z.array(z.object({ title: shortText(120).min(1), date: dateString, time: z.string().regex(/^\d{2}:\d{2}$/).nullable() })).min(1).max(200),
+});

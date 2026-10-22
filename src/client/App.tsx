@@ -13,7 +13,7 @@ import { QuestBoardPage } from "@/pages/QuestBoard";
 import { CharacterPage } from "@/pages/Character";
 import { SettingsPage } from "@/pages/Settings";
 import { OnboardingPage } from "@/pages/Onboarding";
-import { StrategistPage } from "@/pages/Minor";
+import { StrategistPage } from "@/pages/Strategist";
 import { AchievementsPage } from "@/pages/Achievements";
 import { SkillTreesPage } from "@/pages/SkillTrees";
 import { SeasonsPage } from "@/pages/Seasons";

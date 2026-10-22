@@ -449,3 +449,53 @@ export const seasonReviews = sqliteTable(
   },
   (t) => [uniqueIndex("season_reviews_week_uq").on(t.seasonId, t.weekStart)],
 );
+
+// ---------------- Phase 5: AI strategist ----------------
+
+export const aiConversations = sqliteTable("ai_conversations", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  mode: text("mode").$type<"chat" | "daily_focus" | "weekly_review">().notNull().default("chat"),
+  createdAt: createdAt(),
+  updatedAt: text("updated_at").notNull().default(now),
+});
+
+/**
+ * Messages exactly as exchanged with the API (content blocks as JSON), stored append-only so
+ * assistant turns, including thinking and tool_use blocks, are replayed unchanged.
+ */
+export const aiMessages = sqliteTable(
+  "ai_messages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    conversationId: integer("conversation_id")
+      .notNull()
+      .references(() => aiConversations.id, { onDelete: "cascade" }),
+    role: text("role").$type<"user" | "assistant">().notNull(),
+    content: text("content", { mode: "json" }).$type<unknown[]>().notNull(),
+    /** Plain text shown in the chat UI (empty for tool-result plumbing turns). */
+    displayText: text("display_text").notNull().default(""),
+    visible: integer("visible", { mode: "boolean" }).notNull().default(true),
+    createdAt: createdAt(),
+  },
+  (t) => [index("ai_messages_conversation_idx").on(t.conversationId)],
+);
+
+/** Actions the AI suggested. Nothing happens until the user approves, via the normal validated services. */
+export const aiProposals = sqliteTable(
+  "ai_proposals",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    conversationId: integer("conversation_id")
+      .notNull()
+      .references(() => aiConversations.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<"create_quest" | "complete_quest" | "add_note" | "add_season_goal">().notNull(),
+    payload: text("payload", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
+    summary: text("summary").notNull(),
+    status: text("status").$type<"pending" | "approved" | "rejected" | "failed">().notNull().default("pending"),
+    resultNote: text("result_note").notNull().default(""),
+    createdAt: createdAt(),
+    decidedAt: text("decided_at"),
+  },
+  (t) => [index("ai_proposals_conversation_idx").on(t.conversationId)],
+);

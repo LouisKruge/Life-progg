@@ -9,6 +9,7 @@ import { activeSavingsGoal } from "./savings.js";
 import { getSettings, today } from "./settings.js";
 import { recentEvents } from "./timeline.js";
 import { listAchievements } from "./achievements.js";
+import { todaysAiFocus } from "./strategist.js";
 
 const DIFFICULTY_ORDER = { epic: 0, hard: 1, medium: 2, easy: 3, trivial: 4 } as const;
 
@@ -103,6 +104,8 @@ export function getDashboard(ctx: AppContext): DashboardData {
     .sort((a, b) => b.progress - a.progress)[0];
   if (nextAchievement) milestones.push({ label: nextAchievement.name, detail: nextAchievement.condition, progress: nextAchievement.progress });
 
+  const aiFocus = todaysAiFocus(ctx);
+
   return {
     today: date,
     isRestDay,
@@ -125,7 +128,7 @@ export function getDashboard(ctx: AppContext): DashboardData {
     recentAchievements: unlocks,
     nextReward: target ? { id: target.id, name: target.name, creditPrice: target.creditPrice, creditsNeeded: Math.max(0, target.creditPrice - character.credits) } : null,
     milestones,
-    focus: plannerFocus(questsToday, isRestDay, savingsGoal),
+    focus: aiFocus ? { source: "ai", ...aiFocus } : plannerFocus(questsToday, isRestDay, savingsGoal),
     recentEvents: recentEvents(ctx, 6),
   };
 }

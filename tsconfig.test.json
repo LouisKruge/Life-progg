@@ -7,7 +7,7 @@
     "jsx": "react-jsx",
     "types": ["node", "vite/client", "@testing-library/jest-dom"],
     "baseUrl": ".",
-    "paths": { "@/*": ["src/client/*"] },
+    "paths": { "@/*": ["src/client/*"], "@shared/*": ["src/shared/*"] },
     "noEmit": true
   },
   "include": ["tests/**/*.ts", "tests/**/*.tsx", "e2e/**/*.ts", "playwright.config.ts", "vite.config.ts", "drizzle.config.ts"]

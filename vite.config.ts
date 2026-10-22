@@ -9,7 +9,10 @@ export default defineConfig({
   root: "src/client",
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { "@": path.resolve(import.meta.dirname, "src/client") },
+    alias: {
+      "@": path.resolve(import.meta.dirname, "src/client"),
+      "@shared": path.resolve(import.meta.dirname, "src/shared"),
+    },
   },
   build: {
     outDir: "../../dist/client",

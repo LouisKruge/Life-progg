@@ -10,6 +10,7 @@ export default defineConfig({
   workers: 1,
   use: {
     baseURL: `http://127.0.0.1:${port}`,
+    viewport: { width: 1600, height: 1000 },
     launchOptions: executablePath ? { executablePath } : {},
   },
   webServer: {

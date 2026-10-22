@@ -25,6 +25,7 @@ import {
 import { listSavingsGoals, recordSavingsEntry, setupSavingsGoal } from "./services/savings.js";
 import { createBackup, exportJson, listBackups, restoreBackup } from "./services/backup.js";
 import { recentEvents } from "./services/timeline.js";
+import { listRewards } from "./services/rewards.js";
 
 export interface AppOptions {
   ctx: AppContext;
@@ -120,6 +121,9 @@ export function buildApp({ ctx, clientDir = null, dataDir, logger = false }: App
   app.get("/api/savings-goals", async () => listSavingsGoals(ctx));
   app.post("/api/savings-goals", async (req, reply) => reply.code(201).send(setupSavingsGoal(ctx, parse(v.savingsGoalSchema, req.body))));
   app.post("/api/savings-goals/:id/entries", async (req) => recordSavingsEntry(ctx, id(req), parse(v.savingsEntrySchema, req.body)));
+
+  // ---- Rewards (read-only until the vault ships in phase 3) ----
+  app.get("/api/rewards", async () => listRewards(ctx));
 
   // ---- Backup & export ----
   app.get("/api/backups", async () => listBackups(ctx));

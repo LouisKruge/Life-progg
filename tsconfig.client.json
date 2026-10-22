@@ -7,7 +7,7 @@
     "jsx": "react-jsx",
     "types": ["vite/client"],
     "baseUrl": ".",
-    "paths": { "@/*": ["src/client/*"] },
+    "paths": { "@/*": ["src/client/*"], "@shared/*": ["src/shared/*"] },
     "noEmit": true
   },
   "include": ["src/client/**/*.ts", "src/client/**/*.tsx", "src/shared/**/*.ts"]

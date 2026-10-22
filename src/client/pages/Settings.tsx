@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { DatabaseBackup, Download, KeyRound, RotateCcw } from "lucide-react";
+import { DatabaseBackup, Download, KeyRound, RotateCcw, Upload } from "lucide-react";
+import { toast } from "@/lib/toast";
 import { DEFAULT_DIFFICULTY_REWARDS, DEFAULT_RANKS, QUEST_DIFFICULTIES, type DifficultyRewards, type RankThreshold, type Settings } from "@shared/types";
-import { useBackups, useCreateBackup, useDemoData, useRestoreBackup, useSettings, useSystem, useUpdateSettings } from "@/lib/queries";
+import { useBackups, useCreateBackup, useDemoData, useImportJson, useRestoreBackup, useSettings, useSystem, useUpdateSettings } from "@/lib/queries";
 import { formatDateTime, parseMoney, WEEKDAYS } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -234,6 +235,17 @@ function DataSection() {
   const demo = useDemoData();
   const { data: s } = useSettings();
   const [restoreName, setRestoreName] = useState<string | null>(null);
+  const [importPayload, setImportPayload] = useState<{ name: string; data: unknown; exportedAt?: string } | null>(null);
+  const importJson = useImportJson();
+  const pickImport = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text()) as { exportedAt?: string };
+      setImportPayload({ name: file.name, data, exportedAt: data.exportedAt });
+    } catch {
+      toast.error("That file isn't valid JSON.");
+    }
+  };
   const [confirmRemoveDemo, setConfirmRemoveDemo] = useState(false);
   return (
     <Card>
@@ -248,6 +260,10 @@ function DataSection() {
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" onClick={() => create.mutate()} disabled={create.isPending}><DatabaseBackup /> Back up now</Button>
           <Button size="sm" variant="secondary" asChild><a href="/api/export" download><Download /> Export JSON</a></Button>
+          <label className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-md border border-border bg-surface-2 px-3 text-xs font-medium hover:bg-surface-3">
+            <Upload className="size-4" /> Import JSON
+            <input type="file" accept="application/json,.json" className="sr-only" onChange={(e) => void pickImport(e.target.files?.[0]).finally(() => (e.target.value = ""))} />
+          </label>
         </div>
         <div>
           <div className="text-label mb-2">Backups</div>
@@ -256,7 +272,7 @@ function DataSection() {
           ) : backups.length === 0 ? (
             <p className="text-xs text-muted-foreground">No backups yet. Automatic backups are also taken before every upgrade and every restore.</p>
           ) : (
-            <ul className="max-h-60 space-y-1 overflow-y-auto">
+            <ul tabIndex={0} aria-label="Backups" className="max-h-60 space-y-1 overflow-y-auto">
               {backups.map((b) => (
                 <li key={b.id} className="flex items-center gap-3 rounded-md px-2 py-1.5 text-xs hover:bg-surface-2">
                   <span className="flex-1">
@@ -284,6 +300,14 @@ function DataSection() {
           description="Your current data is backed up automatically first, so this can be reversed by restoring that safety copy."
           confirmLabel="Restore"
           onConfirm={() => restoreName && restore.mutate(restoreName)}
+        />
+        <ConfirmDialog
+          open={importPayload !== null}
+          onOpenChange={(o) => !o && setImportPayload(null)}
+          title="Import this export?"
+          description={`“${importPayload?.name}”${importPayload?.exportedAt ? ` from ${importPayload.exportedAt.slice(0, 10)}` : ""} replaces the current data. Your current data is backed up first, so this can be undone by restoring that copy. Your API key is kept.`}
+          confirmLabel="Import"
+          onConfirm={() => importPayload && importJson.mutate(importPayload.data)}
         />
         <ConfirmDialog
           open={confirmRemoveDemo}

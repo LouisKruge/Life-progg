@@ -110,7 +110,7 @@ function Chat() {
         </div>
       </CardHeader>
       <CardContent className="pt-3">
-        <div className="max-h-[520px] min-h-56 space-y-4 overflow-y-auto pr-1" aria-live="polite">
+        <div tabIndex={0} role="log" aria-label="Conversation messages" className="max-h-[520px] min-h-56 space-y-4 overflow-y-auto pr-1" aria-live="polite">
           {!conv && !pendingText && (
             <div className="grid gap-2 sm:grid-cols-2">
               {QUICK_PROMPTS.map((p) => (

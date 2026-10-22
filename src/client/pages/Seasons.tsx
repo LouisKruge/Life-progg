@@ -135,8 +135,8 @@ function SeasonDetail({ season: s }: { season: SeasonView }) {
           <CardContent className="h-56 pt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={s.weeklyXp.map((w, i) => ({ ...w, label: `W${i + 1}` }))} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
-                <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#6b6e76", fontSize: 10 }} interval={1} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fill: "#6b6e76", fontSize: 10 }} />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#8b8e96", fontSize: 10 }} interval={1} />
+                <YAxis tickLine={false} axisLine={false} tick={{ fill: "#8b8e96", fontSize: 10 }} />
                 <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} contentStyle={{ background: "#1b1d21", border: "1px solid #303238", borderRadius: 8, fontSize: 12 }} labelFormatter={(_, p) => `Week of ${p?.[0]?.payload?.weekStart ?? ""}`} />
                 <Bar dataKey="xp" fill="#d4d4d8" radius={[3, 3, 0, 0]} />
               </BarChart>

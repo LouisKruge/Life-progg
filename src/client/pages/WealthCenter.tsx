@@ -206,8 +206,8 @@ function ProjectionChart({ series, money }: { series: ProjectionPoint[]; money: 
           </linearGradient>
         </defs>
         <CartesianGrid stroke="#1b1d21" vertical={false} />
-        <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#6b6e76", fontSize: 11 }} />
-        <YAxis tickLine={false} axisLine={false} width={70} tick={{ fill: "#6b6e76", fontSize: 11 }} tickFormatter={(v: number) => `R${Math.round(v / 1000)}k`} />
+        <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#8b8e96", fontSize: 11 }} />
+        <YAxis tickLine={false} axisLine={false} width={70} tick={{ fill: "#8b8e96", fontSize: 11 }} tickFormatter={(v: number) => `R${Math.round(v / 1000)}k`} />
         <Tooltip contentStyle={{ background: "#1b1d21", border: "1px solid #303238", borderRadius: 8, fontSize: 12 }} formatter={(v) => [money(Number(v) * 100), "Projected savings"]} />
         <Area type="monotone" dataKey="value" stroke="#d4d4d8" strokeDasharray="5 4" strokeWidth={2} fill="url(#proj)" />
       </AreaChart>

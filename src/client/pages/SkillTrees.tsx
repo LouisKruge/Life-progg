@@ -84,6 +84,7 @@ function TreeGraph({ tree, selected, onSelect }: { tree: SkillTreeView; selected
 
   const pos = (n: SkillNodeView) => ({ x: 40 + n.x * COL, y: 30 + n.y * ROW });
   const byKey = new Map(tree.nodes.map((n) => [n.key, n]));
+  const canvas = { w: 80 + COL * (Math.max(...tree.nodes.map((n) => n.x)) + 1), h: 60 + ROW * Math.max(...tree.nodes.map((n) => n.y)) + NODE_H };
 
   return (
     <Card className="relative overflow-hidden">
@@ -94,15 +95,16 @@ function TreeGraph({ tree, selected, onSelect }: { tree: SkillTreeView; selected
       </div>
       <div
         ref={box}
-        className="h-[560px] cursor-grab touch-none select-none active:cursor-grabbing"
+        className="h-[560px] cursor-grab touch-none overflow-hidden select-none active:cursor-grabbing"
         style={{ backgroundImage: "radial-gradient(circle, #1f2126 1px, transparent 1px)", backgroundSize: "24px 24px" }}
         onPointerDown={(e) => { drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y }; }}
         onPointerMove={(e) => { if (drag.current) setPan({ x: drag.current.px + e.clientX - drag.current.x, y: drag.current.py + e.clientY - drag.current.y }); }}
         onPointerUp={() => { drag.current = null; }}
         onPointerLeave={() => { drag.current = null; }}
       >
-        <svg width="100%" height="100%" role="group" aria-label={`${tree.name} skill tree`}>
-          <g transform={`translate(${pan.x + 24}, ${pan.y + 24}) scale(${zoom})`}>
+        <div role="group" aria-label={`${tree.name} skill tree`} className="relative origin-top-left" style={{ transform: `translate(${pan.x + 24}px, ${pan.y + 24}px) scale(${zoom})`, width: canvas.w, height: canvas.h }}>
+          {/* Edges are decorative; the nodes below are real buttons. */}
+          <svg width={canvas.w} height={canvas.h} className="absolute inset-0" aria-hidden="true">
             {tree.nodes.flatMap((n) =>
               n.parentKeys.map((pk) => {
                 const p = byKey.get(pk);
@@ -125,34 +127,41 @@ function TreeGraph({ tree, selected, onSelect }: { tree: SkillTreeView; selected
                 );
               }),
             )}
-            {tree.nodes.map((n) => {
-              const { x, y } = pos(n);
-              const state = nodeState(n);
-              const isSel = selected?.key === n.key;
-              return (
-                <g
-                  key={n.key}
-                  transform={`translate(${x}, ${y})`}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${n.name}: ${state}. ${n.condition}`}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => onSelect(n)}
-                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onSelect(n))}
-                  className="cursor-pointer outline-none [&:focus-visible>rect]:stroke-foreground"
-                >
-                  <rect width={NODE_W} height={NODE_H} rx={12} fill={state === "unlocked" ? "#24262b" : "#121316"} stroke={isSel ? "#f5f5f5" : state === "unlocked" ? "#d4d4d8" : state === "available" ? "#6b6e76" : "#303238"} strokeWidth={isSel ? 2 : 1.2} />
-                  <text x={14} y={26} fill={state === "locked" ? "#6b6e76" : "#f5f5f5"} fontSize={13} fontWeight={600}>{n.name}</text>
-                  <text x={14} y={46} fill="#9a9da5" fontSize={10.5}>{state === "unlocked" ? "Unlocked" : state === "available" ? `${Math.floor(n.progress * 100)}% · next up` : "Locked"}</text>
-                  {state !== "unlocked" && <rect x={14} y={54} width={NODE_W - 28} height={2} rx={1} fill="#24262b" />}
-                  {state !== "unlocked" && <rect x={14} y={54} width={(NODE_W - 28) * n.progress} height={2} rx={1} fill="#9a9da5" />}
-                </g>
-              );
-            })}
-          </g>
-        </svg>
+          </svg>
+          {tree.nodes.map((n) => {
+            const { x, y } = pos(n);
+            const state = nodeState(n);
+            const isSel = selected?.key === n.key;
+            const status = state === "unlocked" ? "Unlocked" : state === "available" ? `${Math.floor(n.progress * 100)}% · next up` : "Locked";
+            return (
+              <button
+                key={n.key}
+                type="button"
+                aria-pressed={isSel}
+                aria-describedby={`node-${n.key}-desc`}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => onSelect(n)}
+                style={{ left: x, top: y, width: NODE_W, height: NODE_H }}
+                className={cn(
+                  "absolute flex flex-col justify-center rounded-xl border px-3.5 text-left transition-colors",
+                  state === "unlocked" ? "border-accent bg-surface-3" : state === "available" ? "border-[#6b6e76] bg-surface" : "border-border bg-surface",
+                  isSel && "ring-2 ring-foreground",
+                )}
+              >
+                <span className={cn("text-[13px] font-semibold", state === "locked" && "text-muted-foreground")}>{n.name}</span>{" "}
+                <span className="text-[10.5px] text-muted-foreground">{status}</span>
+                {state !== "unlocked" && (
+                  <span className="mt-1.5 block h-0.5 w-full overflow-hidden rounded bg-surface-3" aria-hidden="true">
+                    <span className="block h-full bg-muted-foreground" style={{ width: `${n.progress * 100}%` }} />
+                  </span>
+                )}
+                <span id={`node-${n.key}-desc`} className="sr-only">{n.condition}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <div className="border-t border-border px-4 py-2 text-[11px] text-subtle-foreground">Scroll to zoom · drag to pan · Tab and Enter to explore nodes</div>
+      <div className="border-t border-border px-4 py-2 text-[11px] text-subtle-foreground">Scroll to zoom · drag to pan · Tab and Enter to explore nodes, or use the list view</div>
     </Card>
   );
 }

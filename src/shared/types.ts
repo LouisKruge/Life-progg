@@ -173,7 +173,7 @@ export interface DashboardData {
 export interface BackupInfo {
   id: number;
   fileName: string;
-  kind: "manual" | "pre-migration" | "pre-restore";
+  kind: "manual" | "pre-migration" | "pre-restore" | "import";
   sizeBytes: number;
   integrityOk: boolean;
   createdAt: string;

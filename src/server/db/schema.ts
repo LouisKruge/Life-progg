@@ -308,7 +308,7 @@ export const timelineEvents = sqliteTable(
 export const backupMetadata = sqliteTable("backup_metadata", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   fileName: text("file_name").notNull().unique(),
-  kind: text("kind").$type<"manual" | "pre-migration" | "pre-restore">().notNull(),
+  kind: text("kind").$type<"manual" | "pre-migration" | "pre-restore" | "import">().notNull(),
   sizeBytes: integer("size_bytes").notNull(),
   integrityOk: integer("integrity_ok", { mode: "boolean" }).notNull(),
   createdAt: createdAt(),

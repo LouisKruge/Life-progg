@@ -16,7 +16,12 @@ test("achievements, skill trees, a season and the timeline reflect real progress
 
   await page.getByRole("link", { name: "Skill Trees" }).click();
   await page.getByRole("tab", { name: /Discipline/ }).click();
-  await expect(page.getByRole("button", { name: /First Step: unlocked/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "First Step Unlocked" })).toBeVisible();
+  await page.getByRole("tab", { name: /Wealth/ }).click();
+  await page.getByRole("button", { name: /^Saver/ }).click();
+  await expect(page.getByText("Unlock condition")).toBeVisible();
+  await page.screenshot({ path: "test-results/skills-graph.png" });
+  await page.getByRole("tab", { name: /Discipline/ }).click();
   await page.getByRole("tab", { name: "List" }).click();
   await expect(page.getByText("Week Streak available")).toBeVisible();
   await page.screenshot({ path: "test-results/skills.png" });

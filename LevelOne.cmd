@@ -1,5 +1,6 @@
 @echo off
 rem LEVEL ONE launcher for Windows. Double-click to start; close this window (or press Ctrl+C) to stop.
+rem It installs and rebuilds automatically when the code has changed (for example after git pull).
 setlocal
 cd /d "%~dp0"
 
@@ -10,13 +11,16 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not exist node_modules (
-  echo Installing dependencies - first run only...
-  call npm install || goto :failed
+for /f %%s in ('node scripts\needs-setup.mjs') do set STEP=%%s
+
+if "%STEP%"=="install" (
+  echo Installing dependencies...
+  call npm install --no-audit --no-fund || goto :failed
+  set STEP=build
 )
 
-if not exist dist\server\index.js (
-  echo Building LEVEL ONE - first run only...
+if "%STEP%"=="build" (
+  echo Building LEVEL ONE...
   call npm run build || goto :failed
 )
 

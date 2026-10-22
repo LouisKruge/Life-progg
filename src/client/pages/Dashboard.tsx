@@ -235,8 +235,8 @@ function WeeklyChart({ data }: { data: DashboardData["weeklyActivity"] }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={rows} margin={{ top: 4, right: 0, left: -24, bottom: 0 }}>
-        <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#6b6e76", fontSize: 11 }} />
-        <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: "#6b6e76", fontSize: 11 }} />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#8b8e96", fontSize: 11 }} />
+        <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: "#8b8e96", fontSize: 11 }} />
         <Tooltip
           cursor={{ fill: "rgba(255,255,255,0.04)" }}
           contentStyle={{ background: "#1b1d21", border: "1px solid #303238", borderRadius: 8, fontSize: 12 }}

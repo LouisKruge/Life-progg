@@ -76,7 +76,7 @@ export function CalendarImport() {
             <p className="text-sm text-muted-foreground">No events in the next 30 days.</p>
           ) : (
             <>
-              <ul className="max-h-80 space-y-1 overflow-y-auto">
+              <ul tabIndex={0} aria-label="Calendar events" className="max-h-80 space-y-1 overflow-y-auto">
                 {events.map((e) => (
                   <li key={e.uid}>
                     <label className="flex items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-surface-2">

@@ -23,7 +23,7 @@ import {
   updateQuest,
 } from "./services/quests.js";
 import { listSavingsGoals, recordSavingsEntry, setupSavingsGoal } from "./services/savings.js";
-import { createBackup, exportJson, listBackups, restoreBackup } from "./services/backup.js";
+import { createBackup, exportJson, importJson, listBackups, restoreBackup } from "./services/backup.js";
 import { recentEvents } from "./services/timeline.js";
 import { bootstrap } from "./bootstrap.js";
 import { syncCurrentAllowance } from "./services/rewards.js";
@@ -34,6 +34,8 @@ import { aiRoutes } from "./routes/ai.js";
 
 export interface AppOptions {
   ctx: AppContext;
+  /** When true (loopback binding), requests must name a local host. Blocks DNS-rebinding reads. */
+  localOnly?: boolean;
   clientDir?: string | null;
   dataDir?: string;
   logger?: boolean;
@@ -45,12 +47,20 @@ function parse<T>(schema: ZodType<T>, data: unknown): T {
 
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-export function buildApp({ ctx, clientDir = null, dataDir, logger = false }: AppOptions): FastifyInstance {
+const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
+export function buildApp({ ctx, clientDir = null, dataDir, logger = false, localOnly = true }: AppOptions): FastifyInstance {
   const app = Fastify({ logger, bodyLimit: 4_194_304 });
 
   // Defence for a localhost app: browsers can't send custom headers cross-origin without a
   // CORS preflight (which we never approve), so this blocks drive-by requests from other sites.
   app.addHook("onRequest", async (req, reply) => {
+    if (localOnly) {
+      const hostname = (req.headers.host ?? "").replace(/:\d+$/, "").toLowerCase();
+      if (!LOCAL_HOSTS.has(hostname)) {
+        return reply.code(421).send({ error: { code: "HOST_NOT_ALLOWED", message: "LEVEL ONE only answers on localhost." } });
+      }
+    }
     if (req.url.startsWith("/api/") && MUTATING.has(req.method) && req.headers["x-level-one"] !== "1") {
       return reply.code(403).send({ error: { code: "FORBIDDEN", message: "Missing X-Level-One header." } });
     }
@@ -85,7 +95,7 @@ export function buildApp({ ctx, clientDir = null, dataDir, logger = false }: App
 
   // ---- System ----
   app.get("/api/health", async () => ({ ok: true, today: today(ctx) }));
-  app.get("/api/system", async () => ({ dataDir: dataDir ?? null, version: "0.1.0" }));
+  app.get("/api/system", async () => ({ dataDir: dataDir ?? null, version: "1.0.0" }));
 
   // ---- Settings & onboarding ----
   app.get("/api/settings", async () => getSettings(ctx));
@@ -141,6 +151,7 @@ export function buildApp({ ctx, clientDir = null, dataDir, logger = false }: App
   app.get("/api/backups", async () => listBackups(ctx));
   app.post("/api/backups", async (req, reply) => reply.code(201).send(createBackup(ctx)));
   app.post("/api/backups/restore", async (req) => restoreBackup(ctx, parse(v.restoreSchema, req.body).fileName, bootstrap));
+  app.post("/api/import", { bodyLimit: 50 * 1024 * 1024 }, async (req) => importJson(ctx, req.body, bootstrap));
   app.get("/api/export", async (_req, reply: FastifyReply) => {
     reply.header("Content-Disposition", `attachment; filename="levelone-export-${today(ctx)}.json"`);
     return exportJson(ctx);

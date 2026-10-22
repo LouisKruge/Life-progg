@@ -230,3 +230,15 @@ export function useRestoreBackup() {
     onError,
   });
 }
+
+export function useImportJson() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) => api.post<{ restored: string; safetyBackup: string; rows: number }>("/api/import", data),
+    onSuccess: (r) => {
+      toast.info(`Imported ${r.rows} records`, `Previous data saved as ${r.safetyBackup}`);
+      void qc.invalidateQueries();
+    },
+    onError,
+  });
+}

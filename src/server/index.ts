@@ -15,7 +15,8 @@ async function main() {
   // In --dev mode Vite serves the UI with hot reload, so a stale production build must not be served.
   const devMode = process.argv.includes("--dev");
   const clientDir = !devMode && config.clientDir && fs.existsSync(config.clientDir) ? config.clientDir : null;
-  const app = buildApp({ ctx, clientDir, dataDir: config.dataDir, logger: process.env.LEVELONE_LOG === "1" });
+  const loopback = ["127.0.0.1", "localhost", "::1"].includes(config.host);
+  const app = buildApp({ ctx, clientDir, dataDir: config.dataDir, logger: process.env.LEVELONE_LOG === "1", localOnly: loopback });
 
   const shutdown = async () => {
     await app.close();

@@ -4,9 +4,10 @@ import Database from "better-sqlite3";
 import { desc, eq } from "drizzle-orm";
 import type { AppContext } from "../context.js";
 import * as schema from "../db/schema.js";
-import { backupFileName } from "../db/store.js";
+import { backupFileName, Store } from "../db/store.js";
 import type { BackupInfo } from "../../shared/types.js";
 import { badRequest, conflict, notFound } from "../errors.js";
+import { getApiKey, updateSettings } from "./settings.js";
 
 const SAFE_NAME = /^levelone-[a-z-]+-[0-9TZ-]+\.db$/;
 
@@ -92,32 +93,112 @@ export function restoreBackup(ctx: AppContext, fileName: string, onRestored?: (c
   return { restored: fileName, safetyBackup: safety.fileName };
 }
 
+/**
+ * Every user table, parents before children so an import can insert in this order.
+ * backup_metadata is excluded: it describes files on this machine, not user data.
+ */
+const EXPORT_TABLES = [
+  ["users", schema.users],
+  ["userSettings", schema.userSettings],
+  ["lifeCategories", schema.lifeCategories],
+  ["seasons", schema.seasons],
+  ["seasonGoals", schema.seasonGoals],
+  ["seasonReviews", schema.seasonReviews],
+  ["quests", schema.quests],
+  ["questInstances", schema.questInstances],
+  ["questCompletions", schema.questCompletions],
+  ["xpTransactions", schema.xpTransactions],
+  ["creditTransactions", schema.creditTransactions],
+  ["rewards", schema.rewards],
+  ["rewardBudgetPeriods", schema.rewardBudgetPeriods],
+  ["rewardRedemptions", schema.rewardRedemptions],
+  ["achievements", schema.achievements],
+  ["achievementUnlocks", schema.achievementUnlocks],
+  ["skillNodes", schema.skillNodes],
+  ["skillProgress", schema.skillProgress],
+  ["financialAccounts", schema.financialAccounts],
+  ["financialTransactions", schema.financialTransactions],
+  ["recurringTransactions", schema.recurringTransactions],
+  ["budgets", schema.budgets],
+  ["savingsGoals", schema.savingsGoals],
+  ["debts", schema.debts],
+  ["debtPayments", schema.debtPayments],
+  ["timelineEvents", schema.timelineEvents],
+  ["aiConversations", schema.aiConversations],
+  ["aiMessages", schema.aiMessages],
+  ["aiProposals", schema.aiProposals],
+] as const;
+
+export const EXPORT_FORMAT = "level-one-export";
+export const EXPORT_VERSION = 2;
+
 /** Full JSON export of every user table. API keys are never included. */
 export function exportJson(ctx: AppContext): Record<string, unknown> {
-  const db = ctx.store.db;
-  const settings = db.select().from(schema.userSettings).all().map(({ anthropicApiKey: _k, ...rest }) => rest);
-  return {
-    format: "level-one-export",
-    version: 1,
-    exportedAt: ctx.clock.now().toISOString(),
-    data: {
-      users: db.select().from(schema.users).all(),
-      userSettings: settings,
-      lifeCategories: db.select().from(schema.lifeCategories).all(),
-      quests: db.select().from(schema.quests).all(),
-      questInstances: db.select().from(schema.questInstances).all(),
-      questCompletions: db.select().from(schema.questCompletions).all(),
-      xpTransactions: db.select().from(schema.xpTransactions).all(),
-      creditTransactions: db.select().from(schema.creditTransactions).all(),
-      rewards: db.select().from(schema.rewards).all(),
-      achievements: db.select().from(schema.achievements).all(),
-      achievementUnlocks: db.select().from(schema.achievementUnlocks).all(),
-      seasons: db.select().from(schema.seasons).all(),
-      seasonGoals: db.select().from(schema.seasonGoals).all(),
-      financialAccounts: db.select().from(schema.financialAccounts).all(),
-      financialTransactions: db.select().from(schema.financialTransactions).all(),
-      savingsGoals: db.select().from(schema.savingsGoals).all(),
-      timelineEvents: db.select().from(schema.timelineEvents).all(),
-    },
-  };
+  const data: Record<string, unknown[]> = {};
+  for (const [name, table] of EXPORT_TABLES) {
+    const rows = ctx.store.db.select().from(table).all() as Record<string, unknown>[];
+    data[name] = name === "userSettings" ? rows.map(({ anthropicApiKey: _k, ...rest }) => rest) : rows;
+  }
+  return { format: EXPORT_FORMAT, version: EXPORT_VERSION, exportedAt: ctx.clock.now().toISOString(), data };
+}
+
+/**
+ * Imports a JSON export by building a brand-new database file from it, verifying that file,
+ * and then restoring it like a backup. The current data is backed up first, so an import can
+ * always be undone from Settings → Backups. A malformed file changes nothing.
+ */
+export function importJson(ctx: AppContext, payload: unknown, onRestored?: (ctx: AppContext) => void): { restored: string; safetyBackup: string; rows: number } {
+  if (ctx.store.inMemory) throw conflict("IN_MEMORY", "Import needs a file-backed database.");
+  const p = payload as { format?: unknown; version?: unknown; data?: unknown };
+  if (!p || p.format !== EXPORT_FORMAT || typeof p.data !== "object" || p.data === null) {
+    throw badRequest("IMPORT_INVALID", "That file isn't a LEVEL ONE export.");
+  }
+  if (typeof p.version !== "number" || p.version > EXPORT_VERSION) {
+    throw badRequest("IMPORT_TOO_NEW", "That export was made by a newer version of LEVEL ONE. Update the app first.");
+  }
+  const data = p.data as Record<string, unknown>;
+  const fileName = backupFileName("import", ctx.clock.now());
+  const target = path.join(ctx.store.backupDir, fileName);
+  fs.mkdirSync(ctx.store.backupDir, { recursive: true });
+
+  // Build in a scratch store so the live database is untouched until the file is proven good.
+  const scratch = new Store({ file: target, backupDir: path.join(ctx.store.backupDir, "scratch") });
+  let rows = 0;
+  try {
+    // A fresh store seeds defaults; clear them so the export's rows are the only data.
+    scratch.sqlite.pragma("foreign_keys = OFF");
+    scratch.tx(() => {
+      for (const [, table] of [...EXPORT_TABLES].reverse()) scratch.db.delete(table).run();
+      for (const [name, table] of EXPORT_TABLES) {
+        const list = data[name];
+        if (list === undefined) continue; // older exports lack newer tables
+        if (!Array.isArray(list)) throw badRequest("IMPORT_INVALID", `“${name}” in the export is not a list.`);
+        for (const row of list) {
+          if (typeof row !== "object" || row === null) throw badRequest("IMPORT_INVALID", `A row in “${name}” is malformed.`);
+          scratch.db.insert(table).values(row as never).run();
+          rows++;
+        }
+      }
+    });
+    scratch.sqlite.pragma("foreign_keys = ON");
+    const fkProblems = scratch.sqlite.pragma("foreign_key_check") as unknown[];
+    if (fkProblems.length > 0) throw badRequest("IMPORT_INCONSISTENT", "The export has broken references between records; nothing was changed.");
+    if (!scratch.db.select().from(schema.users).get()) throw badRequest("IMPORT_INVALID", "The export contains no user profile.");
+    scratch.sqlite.pragma("wal_checkpoint(TRUNCATE)");
+  } catch (err) {
+    scratch.close();
+    for (const f of [target, `${target}-wal`, `${target}-shm`]) fs.rmSync(f, { force: true });
+    if (err instanceof Error && !(err as { code?: string }).code?.startsWith?.("SQLITE")) throw err;
+    throw badRequest("IMPORT_INVALID", "The export contains data that doesn't fit the database; nothing was changed.");
+  }
+  scratch.close();
+  for (const f of [`${target}-wal`, `${target}-shm`]) fs.rmSync(f, { force: true });
+  fs.rmSync(path.join(ctx.store.backupDir, "scratch"), { recursive: true, force: true });
+
+  record(ctx, target, "import");
+  // Exports never contain the API key, so keep the one already configured on this machine.
+  const apiKey = getApiKey(ctx);
+  const res = restoreBackup(ctx, fileName, onRestored);
+  if (apiKey) updateSettings(ctx, { anthropicApiKey: apiKey });
+  return { ...res, rows };
 }

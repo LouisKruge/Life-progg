@@ -84,7 +84,7 @@ export function CharacterPage() {
             ) : ledger.length === 0 ? (
               <p className="text-sm text-muted-foreground">No transactions yet. Complete a quest to start your history.</p>
             ) : (
-              <ul className="max-h-[480px] divide-y divide-border/60 overflow-y-auto pr-2">
+              <ul tabIndex={0} aria-label="XP and credit history" className="max-h-[480px] divide-y divide-border/60 overflow-y-auto pr-2">
                 {ledger.map((r) => (
                   <li key={`${r.ledger}-${r.id}`} className="flex items-center gap-4 py-2.5 text-sm">
                     <span className={cn("w-16 shrink-0 text-right font-medium tabular-nums", r.amount < 0 ? "text-muted-foreground" : "text-foreground")}>

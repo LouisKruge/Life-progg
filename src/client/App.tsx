@@ -8,33 +8,28 @@ import { Toaster } from "@/components/layout/Toaster";
 import { LevelUpOverlay } from "@/components/layout/LevelUpOverlay";
 import { QuestEditor } from "@/components/quests/QuestEditor";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { lazy, Suspense } from "react";
 import { DashboardPage } from "@/pages/Dashboard";
-import { QuestBoardPage } from "@/pages/QuestBoard";
-import { CharacterPage } from "@/pages/Character";
-import { SettingsPage } from "@/pages/Settings";
 import { OnboardingPage } from "@/pages/Onboarding";
-import { StrategistPage } from "@/pages/Strategist";
-import { AchievementsPage } from "@/pages/Achievements";
-import { SkillTreesPage } from "@/pages/SkillTrees";
-import { SeasonsPage } from "@/pages/Seasons";
-import { TimelinePage } from "@/pages/Timeline";
 import { UnlockCelebration } from "@/components/layout/UnlockCelebration";
-import { RewardsVaultPage } from "@/pages/RewardsVault";
-import { WealthCenterPage } from "@/pages/WealthCenter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/pages/common";
 
-const ROUTES: Record<string, () => React.ReactElement> = {
+// The dashboard loads eagerly; every other page is its own chunk, fetched on first visit.
+const page = <K extends string>(load: () => Promise<Record<K, () => React.ReactElement>>, name: K) => lazy(async () => ({ default: (await load())[name] }));
+
+const ROUTES: Record<string, React.ComponentType> = {
   "/": DashboardPage,
-  "/quests": QuestBoardPage,
-  "/character": CharacterPage,
-  "/skills": SkillTreesPage,
-  "/wealth": WealthCenterPage,
-  "/rewards": RewardsVaultPage,
-  "/achievements": AchievementsPage,
-  "/seasons": SeasonsPage,
-  "/strategist": StrategistPage,
-  "/timeline": TimelinePage,
-  "/settings": SettingsPage,
+  "/quests": page(() => import("@/pages/QuestBoard"), "QuestBoardPage"),
+  "/character": page(() => import("@/pages/Character"), "CharacterPage"),
+  "/skills": page(() => import("@/pages/SkillTrees"), "SkillTreesPage"),
+  "/wealth": page(() => import("@/pages/WealthCenter"), "WealthCenterPage"),
+  "/rewards": page(() => import("@/pages/RewardsVault"), "RewardsVaultPage"),
+  "/achievements": page(() => import("@/pages/Achievements"), "AchievementsPage"),
+  "/seasons": page(() => import("@/pages/Seasons"), "SeasonsPage"),
+  "/strategist": page(() => import("@/pages/Strategist"), "StrategistPage"),
+  "/timeline": page(() => import("@/pages/Timeline"), "TimelinePage"),
+  "/settings": page(() => import("@/pages/Settings"), "SettingsPage"),
 };
 
 export function App() {
@@ -86,5 +81,9 @@ export function App() {
 function Page({ path }: { path: string }) {
   const Component = ROUTES[path];
   if (!Component) return <QueryError error={new Error(`No page at ${path}.`)} />;
-  return <Component />;
+  return (
+    <Suspense fallback={<Skeleton className="h-96" />}>
+      <Component />
+    </Suspense>
+  );
 }

@@ -22,6 +22,12 @@ describe("API", () => {
     expect(s).not.toHaveProperty("anthropicApiKey");
   });
 
+  it("rejects requests addressed to a non-local host (DNS rebinding)", async () => {
+    const res = await app.inject({ url: "/api/settings", headers: { host: "evil.example.com" } });
+    expect(res.statusCode).toBe(421);
+    expect((await app.inject({ url: "/api/health", headers: { host: "127.0.0.1:4317" } })).statusCode).toBe(200);
+  });
+
   it("blocks mutations without the anti-CSRF header", async () => {
     const res = await app.inject({ method: "POST", url: "/api/onboarding", payload: {} });
     expect(res.statusCode).toBe(403);

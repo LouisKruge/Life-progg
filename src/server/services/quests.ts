@@ -38,6 +38,7 @@ function toQuest(r: QuestRow): Quest {
     verification: r.verification,
     dueDate: r.dueDate,
     isOptional: r.isOptional,
+    seasonId: r.seasonId,
     status: r.status,
     isDemo: r.isDemo,
     createdAt: r.createdAt,
@@ -60,6 +61,7 @@ export interface QuestInput {
   verification?: QuestVerification;
   dueDate?: string | null;
   isOptional?: boolean;
+  seasonId?: number | null;
   isDemo?: boolean;
 }
 
@@ -94,6 +96,7 @@ export function createQuest(ctx: AppContext, input: QuestInput): Quest {
       verification: input.verification ?? "none",
       dueDate,
       isOptional: input.isOptional ?? false,
+      seasonId: input.seasonId ?? null,
       isDemo: input.isDemo ?? false,
       createdAt: nowIso,
       updatedAt: nowIso,

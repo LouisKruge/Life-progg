@@ -13,7 +13,12 @@ import { QuestBoardPage } from "@/pages/QuestBoard";
 import { CharacterPage } from "@/pages/Character";
 import { SettingsPage } from "@/pages/Settings";
 import { OnboardingPage } from "@/pages/Onboarding";
-import { AchievementsPage, SeasonsPage, SkillTreesPage, StrategistPage, TimelinePage } from "@/pages/Minor";
+import { StrategistPage } from "@/pages/Minor";
+import { AchievementsPage } from "@/pages/Achievements";
+import { SkillTreesPage } from "@/pages/SkillTrees";
+import { SeasonsPage } from "@/pages/Seasons";
+import { TimelinePage } from "@/pages/Timeline";
+import { UnlockCelebration } from "@/components/layout/UnlockCelebration";
 import { RewardsVaultPage } from "@/pages/RewardsVault";
 import { WealthCenterPage } from "@/pages/WealthCenter";
 import { QueryError } from "@/pages/common";
@@ -70,6 +75,7 @@ export function App() {
           <QuestEditor />
           <CommandPalette />
           <LevelUpOverlay />
+          <UnlockCelebration />
         </div>
       )}
       <Toaster />

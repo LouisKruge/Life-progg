@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-// Runs after core-loop.spec.ts against the same database (demo data loaded, 15 credits earned).
+// Runs after 01-core-loop.spec.ts against the same database (demo data loaded, 15 credits earned).
 test("earn credits, redeem a real-life reward, confirm it, and keep it after reload", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Undo Deep work block" })).toBeVisible();

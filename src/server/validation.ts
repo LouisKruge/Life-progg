@@ -26,6 +26,7 @@ export const questCreateSchema = z.object({
   verification: z.enum(["none", "note", "confirm"]).optional(),
   dueDate: dateString.nullable().optional(),
   isOptional: z.boolean().optional(),
+  seasonId: z.number().int().positive().nullable().optional(),
 });
 
 export const questUpdateSchema = questCreateSchema.partial();
@@ -161,3 +162,44 @@ export const debtPatchSchema = debtSchema.omit({ startingBalanceCents: true }).p
 export const debtPaymentSchema = z.object({ amountCents: cents.positive(), paidOn: dateString.optional(), note: shortText(200).optional(), fromAccountId: z.number().int().positive().nullable().optional() });
 
 export const scenarioSchema = z.object({ monthlySavingsCents: cents, extraDebtPaymentCents: cents.optional(), months: z.number().int().min(1).max(120).optional() });
+
+// ---------- Phase 4 ----------
+
+const achievementCategory = z.enum(["wealth", "fitness", "discipline", "business", "learning", "personal", "milestone"]);
+export const customAchievementSchema = z.object({
+  name: shortText(80).min(1),
+  description: shortText(300).min(1),
+  category: achievementCategory,
+  tier: z.enum(["bronze", "silver", "gold", "platinum"]),
+  icon: shortText(40).optional(),
+});
+export const unlockSchema = z.object({ evidence: shortText(2000).optional().default("") });
+
+const goalInput = z.object({ title: shortText(160).min(1), isPrimary: z.boolean().optional() });
+export const seasonSchema = z.object({
+  name: shortText(80).min(1),
+  startDate: dateString,
+  endDate: dateString.optional(),
+  theme: shortText(300).optional(),
+  celebration: shortText(300).optional(),
+  goals: z.array(goalInput).max(12).optional(),
+  activate: z.boolean().optional(),
+});
+export const seasonPatchSchema = seasonSchema.omit({ goals: true, activate: true }).partial();
+export const seasonGoalSchema = goalInput;
+export const seasonGoalPatchSchema = goalInput.partial().extend({ status: z.enum(["open", "achieved", "dropped"]).optional() });
+export const reviewSchema = z.object({
+  weekOf: dateString.optional(),
+  wins: shortText(4000).optional(),
+  challenges: shortText(4000).optional(),
+  nextFocus: shortText(4000).optional(),
+  rating: z.number().int().min(1).max(5).nullable().optional(),
+});
+
+export const noteSchema = z.object({
+  title: shortText(160).min(1),
+  detail: shortText(4000).optional(),
+  categoryId: z.number().int().positive().nullable().optional(),
+  kind: z.enum(["note", "event"]).optional(),
+});
+export const snapshotSchema = z.object({ label: shortText(120).optional() }).optional().default({});

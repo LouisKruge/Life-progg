@@ -25,9 +25,11 @@ import {
 import { listSavingsGoals, recordSavingsEntry, setupSavingsGoal } from "./services/savings.js";
 import { createBackup, exportJson, listBackups, restoreBackup } from "./services/backup.js";
 import { recentEvents } from "./services/timeline.js";
+import { bootstrap } from "./bootstrap.js";
 import { syncCurrentAllowance } from "./services/rewards.js";
 import { rewardRoutes } from "./routes/rewards.js";
 import { wealthRoutes } from "./routes/wealth.js";
+import { progressRoutes } from "./routes/progress.js";
 
 export interface AppOptions {
   ctx: AppContext;
@@ -131,11 +133,12 @@ export function buildApp({ ctx, clientDir = null, dataDir, logger = false }: App
 
   rewardRoutes(app, ctx);
   wealthRoutes(app, ctx);
+  progressRoutes(app, ctx);
 
   // ---- Backup & export ----
   app.get("/api/backups", async () => listBackups(ctx));
   app.post("/api/backups", async (req, reply) => reply.code(201).send(createBackup(ctx)));
-  app.post("/api/backups/restore", async (req) => restoreBackup(ctx, parse(v.restoreSchema, req.body).fileName));
+  app.post("/api/backups/restore", async (req) => restoreBackup(ctx, parse(v.restoreSchema, req.body).fileName, bootstrap));
   app.get("/api/export", async (_req, reply: FastifyReply) => {
     reply.header("Content-Disposition", `attachment; filename="levelone-export-${today(ctx)}.json"`);
     return exportJson(ctx);

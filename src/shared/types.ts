@@ -80,6 +80,7 @@ export interface Quest {
   verification: QuestVerification;
   dueDate: string | null;
   isOptional: boolean;
+  seasonId: number | null;
   status: "active" | "archived";
   isDemo: boolean;
   createdAt: string;
@@ -320,6 +321,113 @@ export interface ScenarioResult {
   goals: Array<{ id: number; name: string; months: number | null; month: string | null }>;
   debts: Array<{ id: number; name: string; months: number | null; month: string | null; totalInterestCents: number | null }>;
   series: ProjectionPoint[];
+}
+
+// ---------- Phase 4: achievements, skills, seasons, timeline ----------
+
+export type AchievementTier = "bronze" | "silver" | "gold" | "platinum";
+export type AchievementCategory = "wealth" | "fitness" | "discipline" | "business" | "learning" | "personal" | "milestone";
+
+export interface AchievementView {
+  id: number;
+  key: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: AchievementCategory;
+  tier: AchievementTier;
+  /** Plain-language unlock condition, e.g. "Have R20,000 in protected savings". */
+  condition: string;
+  isCustom: boolean;
+  /** 0..1 progress toward the condition (manual achievements report 0 until unlocked). */
+  progress: number;
+  unlockedAt: string | null;
+  evidence: string;
+}
+
+export interface SkillNodeView {
+  id: number;
+  tree: string;
+  key: string;
+  name: string;
+  description: string;
+  parentKeys: string[];
+  condition: string;
+  progress: number;
+  x: number;
+  y: number;
+  unlockedAt: string | null;
+  /** All parents unlocked, so this node is the next thing to work toward. */
+  available: boolean;
+}
+
+export interface SkillTreeView {
+  key: string;
+  name: string;
+  description: string;
+  xp: number;
+  unlocked: number;
+  total: number;
+  nodes: SkillNodeView[];
+}
+
+export type SeasonStatus = "planned" | "active" | "completed" | "archived";
+
+export interface SeasonGoalView {
+  id: number;
+  title: string;
+  isPrimary: boolean;
+  status: "open" | "achieved" | "dropped";
+}
+
+export interface SeasonReviewView {
+  id: number;
+  weekStart: string;
+  wins: string;
+  challenges: string;
+  nextFocus: string;
+  rating: number | null;
+}
+
+export interface SeasonSummary {
+  xpEarned: number;
+  questsCompleted: number;
+  goalsAchieved: number;
+  goalsTotal: number;
+  levelAtEnd: number;
+  savingsAtEndCents: number;
+  achievementsUnlocked: number;
+  reviewsWritten: number;
+}
+
+export interface SeasonView {
+  id: number;
+  name: string;
+  startDate: string;
+  endDate: string;
+  status: SeasonStatus;
+  theme: string;
+  celebration: string;
+  dayNumber: number;
+  totalDays: number;
+  goals: SeasonGoalView[];
+  reviews: SeasonReviewView[];
+  xp: number;
+  questsCompleted: number;
+  weeklyXp: Array<{ weekStart: string; xp: number }>;
+  summary: SeasonSummary | null;
+  completedAt: string | null;
+}
+
+export interface TimelineItem extends TimelineEvent {
+  categoryId: number | null;
+  data: Record<string, unknown> | null;
+}
+
+export interface TimelinePage {
+  items: TimelineItem[];
+  total: number;
+  types: string[];
 }
 
 export interface ApiErrorBody {

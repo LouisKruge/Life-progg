@@ -4,13 +4,13 @@ import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { systemClock } from "./context.js";
 import { Store } from "./db/store.js";
-import { registerPreMigrationBackup } from "./services/backup.js";
+import { bootstrap } from "./bootstrap.js";
 
 async function main() {
   const config = loadConfig();
   const store = new Store({ file: config.dbFile, backupDir: config.backupDir });
   const ctx = { store, clock: systemClock };
-  registerPreMigrationBackup(ctx);
+  bootstrap(ctx);
 
   // In --dev mode Vite serves the UI with hot reload, so a stale production build must not be served.
   const devMode = process.argv.includes("--dev");

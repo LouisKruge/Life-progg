@@ -15,6 +15,13 @@
       "when": 1792651694417,
       "tag": "0001_wealth_and_rewards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792652545070,
+      "tag": "0002_progress_systems",
+      "breakpoints": true
     }
   ]
 }

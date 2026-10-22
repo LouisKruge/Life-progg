@@ -16,7 +16,7 @@ function item(overrides: Partial<QuestInstanceView["quest"]> = {}): QuestInstanc
     quest: {
       id: 3, title: "Read 15 pages", description: "", categoryId: null, kind: "standard", difficulty: "easy",
       xpReward: 50, creditReward: 5, frequency: "daily", recurrenceDays: [], completionRequirements: "",
-      verification: "none", dueDate: null, isOptional: false, status: "active", isDemo: false,
+      verification: "none", dueDate: null, isOptional: false, seasonId: null, status: "active", isDemo: false,
       createdAt: "2026-10-22T08:00:00Z", updatedAt: "2026-10-22T08:00:00Z", ...overrides,
     },
   };

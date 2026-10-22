@@ -5,6 +5,7 @@ import { Field, Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useCategories, useSaveQuest, useSettings } from "@/lib/queries";
+import { useSeasons } from "@/lib/queries-progress";
 import { closeQuestEditor, questEditorStore } from "@/lib/ui-state";
 import { WEEKDAYS } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ interface FormState {
   verification: QuestVerification;
   dueDate: string;
   isOptional: boolean;
+  seasonId: string;
 }
 
 function initial(q: Quest | null): FormState {
@@ -41,6 +43,7 @@ function initial(q: Quest | null): FormState {
     verification: q?.verification ?? "none",
     dueDate: q?.dueDate ?? "",
     isOptional: q?.isOptional ?? false,
+    seasonId: q?.seasonId ? String(q.seasonId) : "",
   };
 }
 
@@ -49,6 +52,8 @@ export function QuestEditor() {
   const { open, quest } = questEditorStore.use();
   const { data: categories } = useCategories();
   const { data: settings } = useSettings();
+  const { data: seasons } = useSeasons();
+  const openSeasons = (seasons ?? []).filter((x) => x.status === "active" || x.status === "planned" || String(x.id) === f.seasonId);
   const save = useSaveQuest();
   const [f, setF] = useState<FormState>(() => initial(quest));
 
@@ -76,6 +81,7 @@ export function QuestEditor() {
       verification: f.verification,
       dueDate: f.frequency === "once" && f.dueDate ? f.dueDate : null,
       isOptional: f.isOptional,
+      seasonId: f.seasonId ? Number(f.seasonId) : null,
     };
     save.mutate({ id: quest?.id, values }, { onSuccess: () => closeQuestEditor() });
   };
@@ -130,6 +136,14 @@ export function QuestEditor() {
                 })}
               </div>
             </div>
+          )}
+          {openSeasons.length > 0 && (
+            <Field label="Season (optional)" htmlFor="q-season" hint="Season quests count toward that season's story.">
+              <NativeSelect id="q-season" value={f.seasonId} onChange={(e) => set("seasonId", e.target.value)}>
+                <option value="">Not linked to a season</option>
+                {openSeasons.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              </NativeSelect>
+            </Field>
           )}
           {f.frequency === "once" && (
             <Field label="Due date (optional)" htmlFor="q-due">

@@ -8,6 +8,7 @@ import { countActiveDailyQuests, listInstancesForDate, weeklyActivity } from "./
 import { activeSavingsGoal } from "./savings.js";
 import { getSettings, today } from "./settings.js";
 import { recentEvents } from "./timeline.js";
+import { listAchievements } from "./achievements.js";
 
 const DIFFICULTY_ORDER = { epic: 0, hard: 1, medium: 2, easy: 3, trivial: 4 } as const;
 
@@ -95,6 +96,12 @@ export function getDashboard(ctx: AppContext): DashboardData {
       progress: Math.min(1, savingsGoal.savedCents / savingsGoal.targetCents),
     });
   }
+
+  // The closest automatic achievement still to earn, so the next milestone is always visible.
+  const nextAchievement = listAchievements(ctx)
+    .filter((a) => !a.unlockedAt && !a.condition.startsWith("Confirmed"))
+    .sort((a, b) => b.progress - a.progress)[0];
+  if (nextAchievement) milestones.push({ label: nextAchievement.name, detail: nextAchievement.condition, progress: nextAchievement.progress });
 
   return {
     today: date,

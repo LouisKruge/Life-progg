@@ -61,7 +61,7 @@ export function listBackups(ctx: AppContext): BackupInfo[] {
  * Restores a backup. The current database is snapshotted first, the backup is verified
  * before anything is replaced, and the backup list is preserved across the swap.
  */
-export function restoreBackup(ctx: AppContext, fileName: string): { restored: string; safetyBackup: string } {
+export function restoreBackup(ctx: AppContext, fileName: string, onRestored?: (ctx: AppContext) => void): { restored: string; safetyBackup: string } {
   if (!SAFE_NAME.test(fileName)) throw badRequest("INVALID_BACKUP_NAME", "That is not a LEVEL ONE backup file name.");
   const source = path.join(ctx.store.backupDir, fileName);
   if (!fs.existsSync(source)) throw notFound("Backup");
@@ -87,6 +87,8 @@ export function restoreBackup(ctx: AppContext, fileName: string): { restored: st
       .onConflictDoNothing({ target: schema.backupMetadata.fileName })
       .run();
   }
+  // An older backup may predate newer built-in definitions.
+  onRestored?.(ctx);
   return { restored: fileName, safetyBackup: safety.fileName };
 }
 

@@ -74,6 +74,10 @@ export const seasons = sqliteTable("seasons", {
   theme: text("theme").notNull().default(""),
   celebration: text("celebration").notNull().default(""),
   createdAt: createdAt(),
+  /** Frozen end-of-season summary (JSON), written when the season is completed. */
+  summary: text("summary", { mode: "json" }).$type<Record<string, unknown>>(),
+  completedAt: text("completed_at"),
+  statusBeforeArchive: text("status_before_archive"),
 });
 
 export const seasonGoals = sqliteTable(
@@ -218,6 +222,11 @@ export const achievements = sqliteTable("achievements", {
   tier: text("tier").$type<"bronze" | "silver" | "gold" | "platinum">().notNull().default("bronze"),
   conditionType: text("condition_type").notNull(),
   conditionValue: integer("condition_value").notNull().default(0),
+  /** Extra parameter for the condition, e.g. the life category key. */
+  conditionKey: text("condition_key"),
+  /** User-defined achievements are unlocked manually, with optional evidence. */
+  isCustom: integer("is_custom", { mode: "boolean" }).notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
 });
 
 export const achievementUnlocks = sqliteTable("achievement_unlocks", {
@@ -228,6 +237,8 @@ export const achievementUnlocks = sqliteTable("achievement_unlocks", {
     .references(() => achievements.id, { onDelete: "restrict" }),
   unlockedAt: text("unlocked_at").notNull().default(now),
   evidence: text("evidence").notNull().default(""),
+  /** Set once the UI has celebrated this unlock, so each one is celebrated exactly once. */
+  seenAt: text("seen_at"),
 });
 
 export const financialAccounts = sqliteTable("financial_accounts", {
@@ -288,6 +299,8 @@ export const timelineEvents = sqliteTable(
     sourceType: text("source_type"),
     sourceId: integer("source_id"),
     occurredAt: text("occurred_at").notNull().default(now),
+    /** Structured payload, e.g. the numbers in a progress snapshot. */
+    data: text("data", { mode: "json" }).$type<Record<string, unknown>>(),
   },
   (t) => [index("timeline_events_occurred_idx").on(t.occurredAt), index("timeline_events_source_idx").on(t.sourceType, t.sourceId)],
 );
@@ -386,4 +399,53 @@ export const debtPayments = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index("debt_payments_debt_idx").on(t.debtId)],
+);
+
+// ---------------- Phase 4: skills, seasons, timeline ----------------
+
+export const skillNodes = sqliteTable(
+  "skill_nodes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    tree: text("tree").notNull(),
+    key: text("key").notNull().unique(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    parentKeys: text("parent_keys", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
+    conditionType: text("condition_type").notNull(),
+    conditionValue: integer("condition_value").notNull(),
+    conditionKey: text("condition_key"),
+    /** Layout position in the tree view (grid units). */
+    x: integer("x").notNull(),
+    y: integer("y").notNull(),
+  },
+  (t) => [index("skill_nodes_tree_idx").on(t.tree)],
+);
+
+export const skillProgress = sqliteTable("skill_progress", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  nodeId: integer("node_id")
+    .notNull()
+    .unique()
+    .references(() => skillNodes.id, { onDelete: "cascade" }),
+  unlockedAt: text("unlocked_at").notNull().default(now),
+  seenAt: text("seen_at"),
+});
+
+export const seasonReviews = sqliteTable(
+  "season_reviews",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    seasonId: integer("season_id")
+      .notNull()
+      .references(() => seasons.id, { onDelete: "cascade" }),
+    weekStart: text("week_start").notNull(),
+    wins: text("wins").notNull().default(""),
+    challenges: text("challenges").notNull().default(""),
+    nextFocus: text("next_focus").notNull().default(""),
+    rating: integer("rating"),
+    createdAt: createdAt(),
+    updatedAt: text("updated_at").notNull().default(now),
+  },
+  (t) => [uniqueIndex("season_reviews_week_uq").on(t.seasonId, t.weekStart)],
 );

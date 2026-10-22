@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import type { AppContext, Clock } from "../src/server/context.js";
 import { Store } from "../src/server/db/store.js";
+import { bootstrap } from "../src/server/bootstrap.js";
 
 export class TestClock implements Clock {
   constructor(private current: Date) {}
@@ -27,5 +28,7 @@ export function tempDir(): string {
 export function makeCtx(opts: { file?: string; backupDir?: string; clock?: TestClock } = {}): AppContext & { clock: TestClock } {
   const clock = opts.clock ?? new TestClock(new Date(START));
   const store = new Store({ file: opts.file ?? ":memory:", backupDir: opts.backupDir ?? path.join(tempDir(), "backups") });
-  return { store, clock };
+  const ctx = { store, clock };
+  bootstrap(ctx);
+  return ctx;
 }

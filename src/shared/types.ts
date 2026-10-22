@@ -50,7 +50,12 @@ export interface Settings {
   /** Whether a Claude API key is stored on the server. The key itself is never sent to the browser. */
   hasApiKey: boolean;
   aiModel: string;
+  emergencyFundMonths: number;
+  aiDataScopes: AiDataScope[];
 }
+
+export type AiDataScope = "quests" | "progression" | "finances" | "rewards" | "seasons" | "journal";
+export const AI_DATA_SCOPES: AiDataScope[] = ["quests", "progression", "finances", "rewards", "seasons", "journal"];
 
 export interface LifeCategory {
   id: number;
@@ -171,6 +176,150 @@ export interface BackupInfo {
   sizeBytes: number;
   integrityOk: boolean;
   createdAt: string;
+}
+
+// ---------- Phase 3: rewards & wealth ----------
+
+export interface RewardView {
+  id: number;
+  name: string;
+  description: string;
+  imageUrl: string | null;
+  category: string;
+  creditPrice: number;
+  estimatedCostCents: number;
+  quantityAvailable: number | null;
+  repeatable: boolean;
+  status: "active" | "archived";
+  isWishlisted: boolean;
+  isDemo: boolean;
+  sortOrder: number;
+  timesRedeemed: number;
+  /** Why it can't be redeemed right now, or null if it can. */
+  blockedReason: string | null;
+}
+
+export interface RedemptionView {
+  id: number;
+  rewardId: number;
+  rewardName: string;
+  creditCost: number;
+  reservedCents: number;
+  actualCostCents: number | null;
+  status: "reserved" | "fulfilled" | "cancelled";
+  note: string;
+  redeemedAt: string;
+  fulfilledAt: string | null;
+  cancelledAt: string | null;
+}
+
+export interface RewardBudget {
+  month: string;
+  allowanceCents: number;
+  reservedCents: number;
+  spentCents: number;
+  availableCents: number;
+}
+
+export interface VaultData {
+  credits: number;
+  budget: RewardBudget;
+  rewards: RewardView[];
+  redemptions: RedemptionView[];
+}
+
+export type AccountType = "savings" | "emergency" | "cheque" | "investment" | "cash";
+export type TransactionKind = "opening_balance" | "deposit" | "withdrawal" | "income" | "expense" | "correction";
+
+export interface AccountView {
+  id: number;
+  name: string;
+  type: AccountType;
+  isProtected: boolean;
+  balanceCents: number;
+  pendingCents: number;
+  archived: boolean;
+}
+
+export interface TransactionView {
+  id: number;
+  accountId: number;
+  accountName: string;
+  amountCents: number;
+  kind: TransactionKind;
+  category: string;
+  description: string;
+  occurredOn: string;
+  status: "confirmed" | "pending";
+  recurringId: number | null;
+}
+
+export interface RecurringView {
+  id: number;
+  accountId: number;
+  name: string;
+  amountCents: number;
+  kind: "income" | "expense" | "deposit" | "withdrawal";
+  category: string;
+  dayOfMonth: number;
+  active: boolean;
+}
+
+export interface DebtView {
+  id: number;
+  name: string;
+  kind: string;
+  startingBalanceCents: number;
+  balanceCents: number;
+  interestRateBps: number;
+  minimumPaymentCents: number;
+  status: "active" | "paid_off" | "archived";
+  /** Estimate at the minimum payment; null if the payment doesn't cover interest. */
+  payoff: { months: number; totalInterestCents: number; month: string } | null;
+}
+
+export interface BudgetLine {
+  category: string;
+  limitCents: number | null;
+  spentCents: number;
+  plannedCents: number;
+}
+
+export interface MonthSummary {
+  month: string;
+  incomeCents: number;
+  expensesCents: number;
+  savedCents: number;
+  pendingIncomeCents: number;
+  pendingExpensesCents: number;
+  budget: BudgetLine[];
+}
+
+export interface ProjectionPoint {
+  month: string;
+  savingsCents: number;
+  netCents: number;
+}
+
+export interface WealthOverview {
+  month: string;
+  accounts: AccountView[];
+  netWorthCents: number;
+  totalDebtCents: number;
+  summary: MonthSummary;
+  emergencyFund: { balanceCents: number; targetCents: number; months: number; monthlyExpensesCents: number };
+  savingsGoals: SavingsGoalView[];
+  debts: DebtView[];
+  recurring: RecurringView[];
+  /** Labelled projections, never mixed with actual balances. */
+  projection: ProjectionPoint[];
+  plan: { monthlyIncomeCents: number | null; monthlySavingsTargetCents: number | null };
+}
+
+export interface ScenarioResult {
+  goals: Array<{ id: number; name: string; months: number | null; month: string | null }>;
+  debts: Array<{ id: number; name: string; months: number | null; month: string | null; totalInterestCents: number | null }>;
+  series: ProjectionPoint[];
 }
 
 export interface ApiErrorBody {

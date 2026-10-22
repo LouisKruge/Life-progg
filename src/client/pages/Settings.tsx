@@ -178,7 +178,7 @@ function moneyInput(cents: number | null) {
 
 function FinanceSection({ s }: { s: Settings }) {
   const update = useUpdateSettings();
-  const src = { income: moneyInput(s.monthlyIncomeCents), savings: moneyInput(s.monthlySavingsTargetCents), allowance: moneyInput(s.monthlyRewardAllowanceCents) };
+  const src = { income: moneyInput(s.monthlyIncomeCents), savings: moneyInput(s.monthlySavingsTargetCents), allowance: moneyInput(s.monthlyRewardAllowanceCents), efMonths: String(s.emergencyFundMonths) };
   const [d, setD, dirty] = useDraft(src);
   const parsed = { income: parseMoney(d.income), savings: parseMoney(d.savings), allowance: parseMoney(d.allowance) };
   const invalid = Object.values(parsed).some((v) => v !== null && (!Number.isFinite(v) || v < 0));
@@ -192,8 +192,11 @@ function FinanceSection({ s }: { s: Settings }) {
         <Field label={`Reward allowance (${s.currency})`} htmlFor="f-all" hint="Discretionary money for paid rewards. Separate from savings and debt payments.">
           <Input id="f-all" inputMode="decimal" value={d.allowance} onChange={(e) => setD({ ...d, allowance: e.target.value })} placeholder="Not set" />
         </Field>
+        <Field label="Emergency fund target (months of expenses)" htmlFor="f-ef">
+          <Input id="f-ef" type="number" min={1} max={24} value={d.efMonths} onChange={(e) => setD({ ...d, efMonths: e.target.value })} className="w-28" />
+        </Field>
         {invalid && <p className="text-xs text-danger">Use positive amounts like 25000 or 25 000,00.</p>}
-        <SaveBar dirty={dirty} pending={update.isPending} onReset={() => setD(src)} onSave={() => !invalid && update.mutate({ monthlyIncomeCents: parsed.income, monthlySavingsTargetCents: parsed.savings, monthlyRewardAllowanceCents: parsed.allowance })} />
+        <SaveBar dirty={dirty} pending={update.isPending} onReset={() => setD(src)} onSave={() => !invalid && update.mutate({ monthlyIncomeCents: parsed.income, monthlySavingsTargetCents: parsed.savings, monthlyRewardAllowanceCents: parsed.allowance, emergencyFundMonths: Math.min(24, Math.max(1, Number(d.efMonths) || 3)) })} />
       </CardContent>
     </Card>
   );

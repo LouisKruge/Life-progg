@@ -16,6 +16,7 @@ import { badRequest, conflict, notFound } from "../errors.js";
 import { getCharacter, recordCredits, recordXp, totalXp } from "./progression.js";
 import { getSettings, today } from "./settings.js";
 import { addTimelineEvent, removeEventsForSource } from "./timeline.js";
+import { runProgressHooks } from "./hooks.js";
 
 type QuestRow = typeof quests.$inferSelect;
 type InstanceRow = typeof questInstances.$inferSelect;
@@ -343,6 +344,7 @@ export function completeInstance(ctx: AppContext, instanceId: number, input: Com
         sourceId: completion.id,
       });
     }
+    runProgressHooks(ctx);
     return { alreadyCompleted: false, xp: quest.xpReward, credits: quest.creditReward };
   });
 

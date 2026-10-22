@@ -52,13 +52,16 @@ export const useSavingsGoals = () => useQuery({ queryKey: keys.savings, queryFn:
 export const useSystem = () => useQuery({ queryKey: keys.system, queryFn: () => api.get<{ dataDir: string | null; version: string }>("/api/system") });
 
 /** Progress data touches many screens, so mutations simply refresh everything that shows it. */
-function useInvalidateProgress() {
+export function useInvalidateProgress() {
   const qc = useQueryClient();
   return () => {
     for (const k of [keys.dashboard, keys.character, keys.board, keys.ledger, keys.timeline, keys.savings]) {
       void qc.invalidateQueries({ queryKey: k });
     }
-    void qc.invalidateQueries({ queryKey: ["quests"] });
+    // Progress can unlock achievements and skills and change wealth and vault figures.
+    for (const prefix of ["quests", "vault", "wealth", "achievements", "skills", "seasons", "timeline-feed"]) {
+      void qc.invalidateQueries({ queryKey: [prefix] });
+    }
   };
 }
 

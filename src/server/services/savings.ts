@@ -3,9 +3,13 @@ import type { AppContext } from "../context.js";
 import { financialAccounts, financialTransactions, savingsGoals } from "../db/schema.js";
 import type { SavingsGoalView } from "../../shared/types.js";
 import { addMonthsToMonth } from "../domain/dates.js";
+import { monthsToTarget } from "../domain/finance.js";
+
+export { monthsToTarget };
 import { badRequest, conflict, notFound } from "../errors.js";
 import { today } from "./settings.js";
 import { addTimelineEvent } from "./timeline.js";
+import { runProgressHooks } from "./hooks.js";
 
 /** Confirmed balance of an account. Pending (scheduled, uncleared) transactions are excluded on purpose. */
 export function accountBalance(ctx: AppContext, accountId: number): number {
@@ -15,16 +19,6 @@ export function accountBalance(ctx: AppContext, accountId: number): number {
     .where(and(eq(financialTransactions.accountId, accountId), eq(financialTransactions.status, "confirmed")))
     .get();
   return Number(row?.total ?? 0);
-}
-
-/**
- * Months until `targetCents` is reached from `savedCents` at `monthlyCents` per month.
- * Returns 0 when already reached and null when there is no positive contribution.
- */
-export function monthsToTarget(savedCents: number, targetCents: number, monthlyCents: number | null): number | null {
-  if (savedCents >= targetCents) return 0;
-  if (!monthlyCents || monthlyCents <= 0) return null;
-  return Math.ceil((targetCents - savedCents) / monthlyCents);
 }
 
 function toView(ctx: AppContext, g: typeof savingsGoals.$inferSelect): SavingsGoalView {
@@ -128,6 +122,7 @@ export function recordSavingsEntry(ctx: AppContext, goalId: number, input: Savin
     if (before < goal.targetCents && after >= goal.targetCents) {
       addTimelineEvent(ctx, { type: "savings_milestone", title: `Savings goal reached: ${goal.name}`, sourceType: "savings_goal", sourceId: goal.id });
     }
+    runProgressHooks(ctx);
     return toView(ctx, goal);
   });
 }

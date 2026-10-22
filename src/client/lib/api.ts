@@ -35,6 +35,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     }
     throw new ApiError(res.status, payload?.error.code ?? "HTTP_ERROR", payload?.error.message ?? `Request failed (${res.status}).`);
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -42,5 +43,6 @@ export const api = {
   get: <T>(url: string) => request<T>("GET", url),
   post: <T>(url: string, body: unknown = {}) => request<T>("POST", url, body),
   patch: <T>(url: string, body: unknown) => request<T>("PATCH", url, body),
+  put: <T>(url: string, body: unknown) => request<T>("PUT", url, body),
   del: <T>(url: string) => request<T>("DELETE", url),
 };

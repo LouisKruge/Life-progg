@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { AppContext } from "../context.js";
 import { lifeCategories, userSettings, users } from "../db/schema.js";
-import type { DifficultyRewards, LifeCategory, RankThreshold, ReducedMotionPreference, Settings } from "../../shared/types.js";
+import type { AiDataScope, DifficultyRewards, LifeCategory, RankThreshold, ReducedMotionPreference, Settings } from "../../shared/types.js";
 import { dateInTimezone, isValidTimezone } from "../domain/dates.js";
 import { badRequest } from "../errors.js";
 
@@ -31,6 +31,8 @@ export function getSettings({ store }: AppContext): Settings {
     aiEnabled: s.aiEnabled,
     hasApiKey: Boolean(s.anthropicApiKey),
     aiModel: s.aiModel,
+    emergencyFundMonths: s.emergencyFundMonths,
+    aiDataScopes: s.aiDataScopes,
   };
 }
 
@@ -52,6 +54,8 @@ export interface SettingsPatch {
   monthlyRewardAllowanceCents?: number | null;
   aiEnabled?: boolean;
   aiModel?: string;
+  emergencyFundMonths?: number;
+  aiDataScopes?: AiDataScope[];
   /** A new key replaces the stored one; null removes it. Undefined leaves it untouched. */
   anthropicApiKey?: string | null;
 }

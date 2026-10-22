@@ -1,6 +1,6 @@
 import { and, eq, inArray, notExists } from "drizzle-orm";
 import type { AppContext } from "../context.js";
-import { financialTransactions, lifeCategories, questInstances, quests, rewards, users } from "../db/schema.js";
+import { financialTransactions, lifeCategories, questInstances, quests, rewardRedemptions, rewards, users } from "../db/schema.js";
 import type { QuestDifficulty, QuestFrequency, Settings } from "../../shared/types.js";
 import { conflict } from "../errors.js";
 import { createQuest } from "./quests.js";
@@ -107,7 +107,7 @@ export function loadDemoData(ctx: AppContext): void {
  * Removes demo content. Demo quests with history are archived rather than deleted, so
  * XP and credits that were genuinely earned stay intact.
  */
-export function removeDemoData(ctx: AppContext): { deletedQuests: number; archivedQuests: number; deletedRewards: number } {
+export function removeDemoData(ctx: AppContext): { deletedQuests: number; archivedQuests: number; deletedRewards: number; archivedRewards: number } {
   return ctx.store.tx(() => {
     const unused = ctx.store.db
       .select({ id: quests.id })
@@ -128,7 +128,13 @@ export function removeDemoData(ctx: AppContext): { deletedQuests: number; archiv
     if (withHistory.length) {
       ctx.store.db.update(quests).set({ status: "archived", archivedAt: nowIso }).where(inArray(quests.id, withHistory)).run();
     }
-    const deletedRewards = ctx.store.db.delete(rewards).where(eq(rewards.isDemo, true)).run().changes;
-    return { deletedQuests: unused.length, archivedQuests: withHistory.length, deletedRewards };
+    // Redeemed demo rewards are part of the user's real history, so they are archived instead.
+    const redeemed = ctx.store.db.selectDistinct({ id: rewardRedemptions.rewardId }).from(rewardRedemptions).all().map((r) => r.id);
+    const demoRewards = ctx.store.db.select({ id: rewards.id }).from(rewards).where(eq(rewards.isDemo, true)).all().map((r) => r.id);
+    const toArchive = demoRewards.filter((id) => redeemed.includes(id));
+    const toDelete = demoRewards.filter((id) => !redeemed.includes(id));
+    if (toArchive.length) ctx.store.db.update(rewards).set({ status: "archived" }).where(inArray(rewards.id, toArchive)).run();
+    if (toDelete.length) ctx.store.db.delete(rewards).where(inArray(rewards.id, toDelete)).run();
+    return { deletedQuests: unused.length, archivedQuests: withHistory.length, deletedRewards: toDelete.length, archivedRewards: toArchive.length };
   });
 }

@@ -25,7 +25,9 @@ import {
 import { listSavingsGoals, recordSavingsEntry, setupSavingsGoal } from "./services/savings.js";
 import { createBackup, exportJson, listBackups, restoreBackup } from "./services/backup.js";
 import { recentEvents } from "./services/timeline.js";
-import { listRewards } from "./services/rewards.js";
+import { syncCurrentAllowance } from "./services/rewards.js";
+import { rewardRoutes } from "./routes/rewards.js";
+import { wealthRoutes } from "./routes/wealth.js";
 
 export interface AppOptions {
   ctx: AppContext;
@@ -84,7 +86,12 @@ export function buildApp({ ctx, clientDir = null, dataDir, logger = false }: App
 
   // ---- Settings & onboarding ----
   app.get("/api/settings", async () => getSettings(ctx));
-  app.patch("/api/settings", async (req) => updateSettings(ctx, parse(v.settingsPatchSchema, req.body)));
+  app.patch("/api/settings", async (req) => {
+    const patch = parse(v.settingsPatchSchema, req.body);
+    const settings = updateSettings(ctx, patch);
+    if (patch.monthlyRewardAllowanceCents !== undefined) syncCurrentAllowance(ctx);
+    return settings;
+  });
   app.get("/api/categories", async () => listCategories(ctx));
   app.post("/api/onboarding", async (req) => completeOnboarding(ctx, parse(v.onboardingSchema, req.body ?? {})));
   app.post("/api/demo-data", async () => {
@@ -122,8 +129,8 @@ export function buildApp({ ctx, clientDir = null, dataDir, logger = false }: App
   app.post("/api/savings-goals", async (req, reply) => reply.code(201).send(setupSavingsGoal(ctx, parse(v.savingsGoalSchema, req.body))));
   app.post("/api/savings-goals/:id/entries", async (req) => recordSavingsEntry(ctx, id(req), parse(v.savingsEntrySchema, req.body)));
 
-  // ---- Rewards (read-only until the vault ships in phase 3) ----
-  app.get("/api/rewards", async () => listRewards(ctx));
+  rewardRoutes(app, ctx);
+  wealthRoutes(app, ctx);
 
   // ---- Backup & export ----
   app.get("/api/backups", async () => listBackups(ctx));

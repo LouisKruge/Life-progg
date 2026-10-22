@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import type {
+  AiDataScope,
   DifficultyRewards,
   QuestDifficulty,
   QuestFrequency,
@@ -48,6 +49,10 @@ export const userSettings = sqliteTable("user_settings", {
   /** Stored server-side only; never returned to the browser. */
   anthropicApiKey: text("anthropic_api_key"),
   aiModel: text("ai_model").notNull().default("claude-sonnet-5-5"),
+  /** Months of expenses the emergency fund should cover. */
+  emergencyFundMonths: integer("emergency_fund_months").notNull().default(3),
+  /** Data categories the AI strategist may read. Nothing outside this list is ever sent. */
+  aiDataScopes: text("ai_data_scopes", { mode: "json" }).$type<AiDataScope[]>().notNull().default(sql`'["quests","progression","seasons"]'`),
   updatedAt: text("updated_at").notNull().default(now),
 });
 
@@ -250,8 +255,14 @@ export const financialTransactions = sqliteTable(
     /** Only confirmed transactions count toward actual balances; pending ones are projections. */
     status: text("status").$type<"confirmed" | "pending">().notNull().default("confirmed"),
     createdAt: createdAt(),
+    /** Set when generated from a recurring template; with `recurringPeriod` it prevents duplicate generation. */
+    recurringId: integer("recurring_id"),
+    recurringPeriod: text("recurring_period"),
   },
-  (t) => [index("financial_transactions_account_idx").on(t.accountId, t.occurredOn)],
+  (t) => [
+    index("financial_transactions_account_idx").on(t.accountId, t.occurredOn),
+    uniqueIndex("financial_transactions_recurring_uq").on(t.recurringId, t.recurringPeriod).where(sql`recurring_id IS NOT NULL`),
+  ],
 );
 
 export const savingsGoals = sqliteTable("savings_goals", {
@@ -289,3 +300,90 @@ export const backupMetadata = sqliteTable("backup_metadata", {
   integrityOk: integer("integrity_ok", { mode: "boolean" }).notNull(),
   createdAt: createdAt(),
 });
+
+// ---------------- Phase 3: rewards economy & wealth ----------------
+
+/** One row per month: the discretionary allowance available for paid rewards. */
+export const rewardBudgetPeriods = sqliteTable("reward_budget_periods", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  month: text("month").notNull().unique(),
+  allowanceCents: integer("allowance_cents").notNull(),
+  createdAt: createdAt(),
+});
+
+export const rewardRedemptions = sqliteTable(
+  "reward_redemptions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    rewardId: integer("reward_id")
+      .notNull()
+      .references(() => rewards.id, { onDelete: "restrict" }),
+    rewardName: text("reward_name").notNull(),
+    creditCost: integer("credit_cost").notNull(),
+    /** Allowance reserved for this redemption (the reward's estimated cost at redemption time). */
+    reservedCents: integer("reserved_cents").notNull().default(0),
+    actualCostCents: integer("actual_cost_cents"),
+    budgetPeriodId: integer("budget_period_id").references(() => rewardBudgetPeriods.id, { onDelete: "restrict" }),
+    /** reserved: intended, not yet confirmed as spent; fulfilled: user confirmed it happened; cancelled: refunded. */
+    status: text("status").$type<"reserved" | "fulfilled" | "cancelled">().notNull().default("reserved"),
+    note: text("note").notNull().default(""),
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    redeemedAt: text("redeemed_at").notNull().default(now),
+    fulfilledAt: text("fulfilled_at"),
+    cancelledAt: text("cancelled_at"),
+  },
+  (t) => [index("reward_redemptions_reward_idx").on(t.rewardId), index("reward_redemptions_period_idx").on(t.budgetPeriodId)],
+);
+
+export const budgets = sqliteTable(
+  "budgets",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    month: text("month").notNull(),
+    category: text("category").notNull(),
+    limitCents: integer("limit_cents").notNull(),
+  },
+  (t) => [uniqueIndex("budgets_month_category_uq").on(t.month, t.category)],
+);
+
+export const recurringTransactions = sqliteTable("recurring_transactions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  accountId: integer("account_id")
+    .notNull()
+    .references(() => financialAccounts.id, { onDelete: "restrict" }),
+  name: text("name").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  kind: text("kind").$type<"income" | "expense" | "deposit" | "withdrawal">().notNull(),
+  category: text("category").notNull().default(""),
+  dayOfMonth: integer("day_of_month").notNull(),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: createdAt(),
+});
+
+export const debts = sqliteTable("debts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  kind: text("kind").notNull().default("loan"),
+  startingBalanceCents: integer("starting_balance_cents").notNull(),
+  /** Annual interest rate in basis points (11.75% = 1175). */
+  interestRateBps: integer("interest_rate_bps").notNull().default(0),
+  minimumPaymentCents: integer("minimum_payment_cents").notNull().default(0),
+  status: text("status").$type<"active" | "paid_off" | "archived">().notNull().default("active"),
+  createdAt: createdAt(),
+  paidOffAt: text("paid_off_at"),
+});
+
+export const debtPayments = sqliteTable(
+  "debt_payments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    debtId: integer("debt_id")
+      .notNull()
+      .references(() => debts.id, { onDelete: "restrict" }),
+    amountCents: integer("amount_cents").notNull(),
+    paidOn: text("paid_on").notNull(),
+    note: text("note").notNull().default(""),
+    createdAt: createdAt(),
+  },
+  (t) => [index("debt_payments_debt_idx").on(t.debtId)],
+);

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { QUEST_DIFFICULTIES, QUEST_FREQUENCIES, QUEST_KINDS } from "../shared/types.js";
+import { AI_DATA_SCOPES, QUEST_DIFFICULTIES, QUEST_FREQUENCIES, QUEST_KINDS } from "../shared/types.js";
 import { isValidDate } from "./domain/dates.js";
 
 const MAX_CENTS = 100_000_000_000; // R1 billion: generous, but rejects typos like extra zeros on overflow.
@@ -62,6 +62,8 @@ export const settingsPatchSchema = z
     aiEnabled: z.boolean(),
     aiModel: shortText(80).min(1),
     anthropicApiKey: shortText(300).min(10).nullable(),
+    emergencyFundMonths: z.number().int().min(1).max(24),
+    aiDataScopes: z.array(z.enum(AI_DATA_SCOPES)).max(AI_DATA_SCOPES.length),
   })
   .partial();
 
@@ -100,3 +102,62 @@ export const savingsGoalSchema = z.object({
 });
 
 export const restoreSchema = z.object({ fileName: z.string().min(1).max(200) });
+
+// ---------- Phase 3 ----------
+
+export const monthString = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Expected a month (YYYY-MM).");
+
+export const rewardSchema = z.object({
+  name: shortText(80).min(1, "Give the reward a name."),
+  description: shortText(1000).optional(),
+  imageUrl: z.string().trim().max(2000).refine((v) => v === "" || /^(https?:|data:image\/)/.test(v), "Use an http(s) or data:image URL.").nullable().optional(),
+  category: shortText(40).min(1).optional(),
+  creditPrice: z.number().int().min(1).max(100_000),
+  estimatedCostCents: cents.optional(),
+  quantityAvailable: z.number().int().min(0).max(10_000).nullable().optional(),
+  repeatable: z.boolean().optional(),
+  isWishlisted: z.boolean().optional(),
+});
+export const rewardPatchSchema = rewardSchema.partial().extend({ status: z.enum(["active", "archived"]).optional() });
+export const reorderSchema = z.object({ ids: z.array(z.number().int().positive()).min(1).max(500) });
+export const redeemSchema = z.object({ requestId: z.string().min(8).max(100), note: shortText(500).optional() });
+export const confirmSpendingSchema = z.object({ actualCostCents: cents.optional(), accountId: z.number().int().positive().nullable().optional() });
+
+const accountType = z.enum(["savings", "emergency", "cheque", "investment", "cash"]);
+export const accountSchema = z.object({ name: shortText(60).min(1), type: accountType, openingBalanceCents: signedCents.optional() });
+export const accountPatchSchema = z.object({ name: shortText(60).min(1).optional(), archived: z.boolean().optional() });
+
+export const transactionSchema = z.object({
+  accountId: z.number().int().positive(),
+  amountCents: cents.positive("Enter an amount above zero."),
+  kind: z.enum(["deposit", "withdrawal", "income", "expense"]),
+  category: shortText(40).optional(),
+  description: shortText(200).optional(),
+  occurredOn: dateString.optional(),
+  status: z.enum(["confirmed", "pending"]).optional(),
+});
+export const confirmTransactionSchema = z.object({ amountCents: cents.positive().optional(), occurredOn: dateString.optional() }).optional().default({});
+
+export const recurringSchema = z.object({
+  accountId: z.number().int().positive(),
+  name: shortText(80).min(1),
+  amountCents: cents.positive(),
+  kind: z.enum(["income", "expense", "deposit", "withdrawal"]),
+  category: shortText(40).optional(),
+  dayOfMonth: z.number().int().min(1).max(28),
+});
+export const recurringPatchSchema = recurringSchema.partial().extend({ active: z.boolean().optional() });
+
+export const budgetSchema = z.object({ month: monthString, category: shortText(40).min(1), limitCents: cents.nullable() });
+
+export const debtSchema = z.object({
+  name: shortText(80).min(1),
+  kind: shortText(40).optional(),
+  startingBalanceCents: cents.positive(),
+  interestRateBps: z.number().int().min(0).max(10_000).optional(),
+  minimumPaymentCents: cents.optional(),
+});
+export const debtPatchSchema = debtSchema.omit({ startingBalanceCents: true }).partial().extend({ archived: z.boolean().optional() });
+export const debtPaymentSchema = z.object({ amountCents: cents.positive(), paidOn: dateString.optional(), note: shortText(200).optional(), fromAccountId: z.number().int().positive().nullable().optional() });
+
+export const scenarioSchema = z.object({ monthlySavingsCents: cents, extraDebtPaymentCents: cents.optional(), months: z.number().int().min(1).max(120).optional() });

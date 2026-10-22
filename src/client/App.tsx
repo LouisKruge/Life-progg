@@ -13,7 +13,9 @@ import { QuestBoardPage } from "@/pages/QuestBoard";
 import { CharacterPage } from "@/pages/Character";
 import { SettingsPage } from "@/pages/Settings";
 import { OnboardingPage } from "@/pages/Onboarding";
-import { AchievementsPage, RewardsPage, SeasonsPage, SkillTreesPage, StrategistPage, TimelinePage, WealthPage } from "@/pages/Minor";
+import { AchievementsPage, SeasonsPage, SkillTreesPage, StrategistPage, TimelinePage } from "@/pages/Minor";
+import { RewardsVaultPage } from "@/pages/RewardsVault";
+import { WealthCenterPage } from "@/pages/WealthCenter";
 import { QueryError } from "@/pages/common";
 
 const ROUTES: Record<string, () => React.ReactElement> = {
@@ -21,8 +23,8 @@ const ROUTES: Record<string, () => React.ReactElement> = {
   "/quests": QuestBoardPage,
   "/character": CharacterPage,
   "/skills": SkillTreesPage,
-  "/wealth": WealthPage,
-  "/rewards": RewardsPage,
+  "/wealth": WealthCenterPage,
+  "/rewards": RewardsVaultPage,
   "/achievements": AchievementsPage,
   "/seasons": SeasonsPage,
   "/strategist": StrategistPage,
